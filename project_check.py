@@ -293,7 +293,3 @@ if __name__ == '__main__':
     project_path = r"\\10.10.30.14\刘晓东\oracle_交付\apy170901049_347小时意大利语手机采集语音数据\data"
     pc = ProjectCheck()
     pc.check(project_path)
-
-
-
-# helllow
