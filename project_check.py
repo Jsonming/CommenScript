@@ -12,7 +12,11 @@ import wave
 
 logger = logging.getLogger("yangmingming")
 log_path = os.path.dirname(os.getcwd()) + '/Logs/'
-log_name = log_path + 'log.log'
+n=1
+log_name = log_path + str(n)+'-log.log'
+while os.path.exists(log_name):
+    n+=1
+    log_name = log_path + str(n)+'-log.log'
 fh = logging.FileHandler(log_name, mode='a', encoding="utf8")
 console = logging.StreamHandler()
 console.setLevel(logging.WARNING)
@@ -52,10 +56,12 @@ class ProjectCheck(object):
         logging.warning("Start")
         print(project_path)
         # self.check_file_complete(project_path)  # 检查文件的完整性
-
+        # 将所有文件名放入list，检查是否有重复
+        all_name_list = []
         for root, dirs, files in os.walk(project_path):
             for file_name in files:
                 file = os.path.join(root, file_name)
+                all_name_list.append(file)
                 if file.endswith("wav"):
                     wav = WAV(file)
                     wav.check()
@@ -67,6 +73,8 @@ class ProjectCheck(object):
                     txt.check()
                 else:
                     logger.error("{}\tfile type error".format(file))
+        if not len(all_name_list) == len(set(all_name_list)):
+            logger.error("{}\tfile name repeat".format(file))
 
 
 class File(object):
@@ -207,7 +215,7 @@ class TXT(File):
             lines = self.read_file()
         self.is_one_line(lines)
 
-        content = "".join(lines)
+        content = "".join(lines).strip()
         self.is_have_digit(content)  # 检查数字
         self.is_double_str(content)  # 检查全角字符
 
