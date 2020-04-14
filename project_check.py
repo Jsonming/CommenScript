@@ -12,11 +12,11 @@ import wave
 
 logger = logging.getLogger("yangmingming")
 log_path = os.path.dirname(os.getcwd()) + '/Logs/'
-n=1
-log_name = log_path + str(n)+'-log.log'
+n = 1
+log_name = log_path + str(n) + '-log.log'
 while os.path.exists(log_name):
-    n+=1
-    log_name = log_path + str(n)+'-log.log'
+    n += 1
+    log_name = log_path + str(n) + '-log.log'
 fh = logging.FileHandler(log_name, mode='a', encoding="utf8")
 console = logging.StreamHandler()
 console.setLevel(logging.WARNING)
@@ -89,11 +89,19 @@ class File(object):
         else:
             self.group = os.path.basename(filepath)
 
+        # 用户定义的合法字符，有些字符是特殊字符但是在某些语言中合法，例如 "、" 在日语中合法
+        self.custom_leg_symbol = ['、', '々']
         # 获取特殊字符
         with open("err_symbol.txt", 'r', encoding='utf8')as f:
             self.err_symbol = f.read()
+
+            # 将用户认为合法的字符剔除错误字符检验
+            for single_char in self.custom_leg_symbol:
+                self.err_symbol = self.err_symbol.replace(single_char, "")
+
         # 定义合法噪音符号
-        self.noisy_list = ['[[lipsmack]]', '[[cough]]', '[[sneeze]]', '[[breath]]', '[[background]]', '[[laugh]]']
+        self.noisy_list = ['[[lipsmack]]', '[[cough]]', '[[sneeze]]', '[[breath]]', '[[background]]', '[[laugh]]',
+                           '[r]', '[p]', '[b]', '[a]', '[m]', '[n]']
 
     def read_file(self):
         """
@@ -290,6 +298,9 @@ if __name__ == '__main__':
     # project_path = r"\\10.10.30.14\刘晓东\oracle_交付\apy161101034_g_343人西班牙语手机采集语音数据\data"
     # project_path = r"\\10.10.30.14\刘晓东\oracle_交付\apy161101034_r_227小时西班牙语手机采集语音数据\data"
     # project_path = r"\\10.10.30.14\刘晓东\oracle_交付\apy170801048_338小时西班牙语手机采集语音数据\data"
-    project_path = r"\\10.10.30.14\刘晓东\oracle_交付\apy170901049_347小时意大利语手机采集语音数据\data"
+    # project_path = r"\\10.10.30.14\刘晓东\oracle_交付\apy170901049_347小时意大利语手机采集语音数据\data"
+
+    project_path = r"\\10.10.30.14\格式整理_ming\apy161101022_r_235小时日语手机采集语音数据_朗读\完整数据包_加密后数据\data"
+
     pc = ProjectCheck()
     pc.check(project_path)
