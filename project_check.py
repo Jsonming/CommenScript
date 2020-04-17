@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import wave
+from CommenScript.update_data.vad import get_wav_start_end
 
 logger = logging.getLogger("yangmingming")
 log_path = os.path.dirname(os.getcwd()) + '/Logs/'
@@ -272,11 +273,20 @@ class WAV(object):
     audio_channel = 1
     sample_width = 2
     framerate = [16000, 22050, 44100]
+    silent_section = 0.05
 
     def __init__(self, file_path):
         self.filepath = file_path
 
+    def silent_section_check(self):
+        start, end, t_all = get_wav_start_end(self.filepath)
+        after_slient_section = t_all - end
+        if start < self.silent_section or after_slient_section < self.silent_section:
+            logger.error("{}\tsilent section long error".format(self.filepath))
+
     def check(self):
+        # 静音段检查
+        self.silent_section_check()
         fsize = os.path.getsize(self.filepath)
         if fsize / float(1024) < self.min_length:
             logger.error("{}\t size error".format(self.filepath))
@@ -300,7 +310,13 @@ if __name__ == '__main__':
     # project_path = r"\\10.10.30.14\刘晓东\oracle_交付\apy170801048_338小时西班牙语手机采集语音数据\data"
     # project_path = r"\\10.10.30.14\刘晓东\oracle_交付\apy170901049_347小时意大利语手机采集语音数据\data"
 
-    project_path = r"\\10.10.30.14\格式整理_ming\apy161101022_r_235小时日语手机采集语音数据_朗读\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\格式整理_ming\apy161101022_r_235小时日语手机采集语音数据_朗读\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\格式整理_ming\APY161101029_r_292小时泰语手机采集语音数据_朗读\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\格式整理_ming\apy161101026_r_197小时韩语手机采集语音数据_朗读\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\格式整理_ming\APY161101027_g_351人德语手机采集语音数据_引导\完整数据包_加密后数据\data"
+
+    project_path = r"\\10.10.30.14\apy161101014_g_132小时中文重口音手机采集语音数据\完整数据包_processed\data"
+    # project_path = r"\\10.10.30.14\apy161101014_r_662小时中文重口音手机采集语音数据\完整数据包_processed\data"
 
     pc = ProjectCheck()
     pc.check(project_path)

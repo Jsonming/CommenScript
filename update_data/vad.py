@@ -2,12 +2,10 @@
 # -*- coding: utf-8 -*-
 import collections
 import contextlib
-import sys
-import wave
 import os
+import wave
+
 import webrtcvad
-import librosa
-from pydub import AudioSegment
 
 mode = 3
 
