@@ -56,7 +56,7 @@ class ProjectCheck(object):
         """
         logging.warning("Start")
         print(project_path)
-        # self.check_file_complete(project_path)  # 检查文件的完整性
+        self.check_file_complete(project_path)  # 检查文件的完整性
         # 将所有文件名放入list，检查是否有重复
         all_name_list = []
         for root, dirs, files in os.walk(project_path):
@@ -101,8 +101,8 @@ class File(object):
                 self.err_symbol = self.err_symbol.replace(single_char, "")
 
         # 定义合法噪音符号
-        self.noisy_list = ['[[lipsmack]]', '[[cough]]', '[[sneeze]]', '[[breath]]', '[[background]]', '[[laugh]]',
-                           '[r]', '[p]', '[b]', '[a]', '[m]', '[n]']
+        self.noisy_list = ['[[lipsmack]]', '[[cough]]', '[[sneeze]]', '[[breath]]', '[[background]]', '[[laugh]]']
+        # self.noisy_list = ['[r]', '[p]', '[b]', '[a]', '[m]', '[n]', '[z]', '[h]', '[k]']     # 老数据中的合法噪音符号
 
     def read_file(self):
         """
@@ -286,7 +286,7 @@ class WAV(object):
 
     def check(self):
         # 静音段检查
-        self.silent_section_check()
+        # self.silent_section_check()
         fsize = os.path.getsize(self.filepath)
         if fsize / float(1024) < self.min_length:
             logger.error("{}\t size error".format(self.filepath))
@@ -315,8 +315,12 @@ if __name__ == '__main__':
     # project_path = r"\\10.10.30.14\格式整理_ming\apy161101026_r_197小时韩语手机采集语音数据_朗读\完整数据包_加密后数据\data"
     # project_path = r"\\10.10.30.14\格式整理_ming\APY161101027_g_351人德语手机采集语音数据_引导\完整数据包_加密后数据\data"
 
-    project_path = r"\\10.10.30.14\apy161101014_g_132小时中文重口音手机采集语音数据\完整数据包_processed\data"
+    # project_path = r"\\10.10.30.14\apy161101014_g_132小时中文重口音手机采集语音数据\完整数据包_processed\data"
+
     # project_path = r"\\10.10.30.14\apy161101014_r_662小时中文重口音手机采集语音数据\完整数据包_processed\data"
+    # project_path = r"\\10.10.30.14\apy161101013_1505小时普通话手机采集语音数据\完整数据包_加密后数据\data"
+
+    project_path = r"\\10.10.30.14\apy180901052_287小时日语手机采集语音数据\完整数据包_processed\data"
 
     pc = ProjectCheck()
     pc.check(project_path)
