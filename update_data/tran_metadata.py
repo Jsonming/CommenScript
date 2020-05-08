@@ -83,6 +83,10 @@ ORS	{ORS}
                         emo = meta.get("EMO")
                         if not emo:
                             meta["EMO"] = ''
+                        ors = meta.get("ORS")
+                        if not ors:
+                            meta["ORS"] = ''
+
                         new_content = sample_temp.format(**meta)
                         print(new_content)
                         # f.seek(0)
