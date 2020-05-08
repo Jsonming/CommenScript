@@ -39,7 +39,7 @@ class ProjectCheck(object):
         for root, dirs, files in os.walk(project_path):
             for file in files:
                 name, suffix = os.path.splitext(file)
-                if suffix in ["txt", "metadata", "wav"]:
+                if suffix in [".txt", ".metadata", ".wav"]:
                     wav_file = os.path.join(root, name + ".wav")
                     txt_file = os.path.join(root, name + ".txt")
                     meta_file = os.path.join(root, name + ".metadata")
@@ -63,17 +63,23 @@ class ProjectCheck(object):
             for file_name in files:
                 file = os.path.join(root, file_name)
                 all_name_list.append(file)
-                if file.endswith("wav"):
-                    wav = WAV(file)
-                    wav.check()
-                elif file.endswith("metadata"):
-                    meta = Metadata(file)
-                    meta.check()
-                elif file.endswith("txt"):
-                    txt = TXT(file)
-                    txt.check()
-                else:
-                    logger.error("{}\tfile type error".format(file))
+
+                # if file.endswith("wav"):
+                #     wav = WAV(file)
+                #     wav.check()
+                # elif file.endswith("metadata"):
+                #     meta = Metadata(file)
+                #     meta.check()
+                # elif file.endswith("txt"):
+                #     txt = TXT(file)
+                #     txt.check()
+                # else:
+                #     logger.error("{}\tfile type error".format(file))
+
+                # if file.endswith("txt"):
+                #     txt = TXT(file)
+                #     txt.check()
+
         if not len(all_name_list) == len(set(all_name_list)):
             logger.error("{}\tfile name repeat".format(file))
 
@@ -91,7 +97,7 @@ class File(object):
             self.group = os.path.basename(filepath)
 
         # 用户定义的合法字符，有些字符是特殊字符但是在某些语言中合法，例如 "、" 在日语中合法
-        self.custom_leg_symbol = ['、', '々']
+        self.custom_leg_symbol = ['’', '´', '～', '%', 'Ü', 'ø']
         # 获取特殊字符
         with open("err_symbol.txt", 'r', encoding='utf8')as f:
             self.err_symbol = f.read()
@@ -102,7 +108,8 @@ class File(object):
 
         # 定义合法噪音符号
         self.noisy_list = ['[[lipsmack]]', '[[cough]]', '[[sneeze]]', '[[breath]]', '[[background]]', '[[laugh]]']
-        # self.noisy_list = ['[r]', '[p]', '[b]', '[a]', '[m]', '[n]', '[z]', '[h]', '[k]']     # 老数据中的合法噪音符号
+        # self.noisy_list = ['[p]', '[n]', '[z]', '[h]', '[k]']     # 老数据中的合法噪音符号
+        # self.noisy_list = ['[r]', '[p]', '[b]', '[a]', '[m]', '[n]']  # 老数据中的合法噪音符号
 
     def read_file(self):
         """
@@ -310,17 +317,20 @@ if __name__ == '__main__':
     # project_path = r"\\10.10.30.14\刘晓东\oracle_交付\apy170801048_338小时西班牙语手机采集语音数据\data"
     # project_path = r"\\10.10.30.14\刘晓东\oracle_交付\apy170901049_347小时意大利语手机采集语音数据\data"
 
-    # project_path = r"\\10.10.30.14\格式整理_ming\apy161101022_r_235小时日语手机采集语音数据_朗读\完整数据包_加密后数据\data"
     # project_path = r"\\10.10.30.14\格式整理_ming\APY161101029_r_292小时泰语手机采集语音数据_朗读\完整数据包_加密后数据\data"
-    # project_path = r"\\10.10.30.14\格式整理_ming\apy161101026_r_197小时韩语手机采集语音数据_朗读\完整数据包_加密后数据\data"
-    # project_path = r"\\10.10.30.14\格式整理_ming\APY161101027_g_351人德语手机采集语音数据_引导\完整数据包_加密后数据\data"
-
+    project_path = r"\\10.10.30.14\格式整理_ming\apy161101022_r_235小时日语手机采集语音数据_朗读\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\apy161101014_r_662小时中文重口音手机采集语音数据\完整数据包_processed\data"
     # project_path = r"\\10.10.30.14\apy161101014_g_132小时中文重口音手机采集语音数据\完整数据包_processed\data"
 
-    # project_path = r"\\10.10.30.14\apy161101014_r_662小时中文重口音手机采集语音数据\完整数据包_processed\data"
+    # project_path = r"\\10.10.30.14\格式整理_ming\apy161101026_r_197小时韩语手机采集语音数据_朗读\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\格式整理_ming\APY161101027_g_351人德语手机采集语音数据_引导\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\apy180901052_287小时日语手机采集语音数据\完整数据包_processed\data"
     # project_path = r"\\10.10.30.14\apy161101013_1505小时普通话手机采集语音数据\完整数据包_加密后数据\data"
 
-    project_path = r"\\10.10.30.14\apy180901052_287小时日语手机采集语音数据\完整数据包_processed\data"
+    # project_path = r"\\10.10.30.14\格式整理_ming\apy161101027_r_211小时德语手机语音采集数据_朗读\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\格式整理_ming\apy161101010_593小时中国人说英语手机采集语音数据\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\格式整理_ming\apy161101028_r_215小时意大利语手机采集语音数据_朗读\完整数据包_加密后数据\data"
 
     pc = ProjectCheck()
     pc.check(project_path)
+
