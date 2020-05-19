@@ -87,7 +87,11 @@ if __name__ == '__main__':
     for person in get_dir_list(work_dir):
         name = person.split('\\')[-1]
         wav_list = get_file_list(person, '.wav')
-        info = check_person_info(wav_list)
+        try:
+            info = check_person_info(wav_list)
+        except Exception as e:
+            raise Exception("{}meta信息不一致".format(name))
+
         wav_sum = get_person_sum(wav_list)
         person_info = [name, *info]
         data.append(person_info)
