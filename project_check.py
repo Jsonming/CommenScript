@@ -9,6 +9,8 @@ import logging
 import os
 import re
 import wave
+from multiprocessing import Pool
+
 from CommenScript.update_data.vad import get_wav_start_end
 
 logger = logging.getLogger("yangmingming")
@@ -46,6 +48,7 @@ class ProjectCheck(object):
                     for item in [wav_file, txt_file, meta_file]:
                         if not os.path.exists(item):
                             logger.error("{}\tdoes not exist".format(item))
+
         logging.warning("project file check end")
 
     def check(self, project_path):
@@ -56,8 +59,7 @@ class ProjectCheck(object):
         """
         logging.warning("Start")
         print(project_path)
-        self.check_file_complete(project_path)  # 检查文件的完整性
-        # 将所有文件名放入list，检查是否有重复
+
         all_name_list = []
         for root, dirs, files in os.walk(project_path):
             for file_name in files:
@@ -75,10 +77,6 @@ class ProjectCheck(object):
                     txt.check()
                 else:
                     logger.error("{}\tfile type error".format(file))
-
-                # if file.endswith("txt"):
-                #     txt = TXT(file)
-                #     txt.check()
 
         if not len(all_name_list) == len(set(all_name_list)):
             logger.error("{}\tfile name repeat".format(file))
@@ -108,6 +106,7 @@ class File(object):
 
         # 定义合法噪音符号
         self.noisy_list = ['[[lipsmack]]', '[[cough]]', '[[sneeze]]', '[[breath]]', '[[background]]', '[[laugh]]']
+        # self.noisy_list = ['[p]', '[n]', '[s]', '[t]']     # 老数据中的合法噪音符号
         # self.noisy_list = ['[p]', '[n]', '[z]', '[h]', '[k]']     # 老数据中的合法噪音符号
         # self.noisy_list = ['[r]', '[p]', '[b]', '[a]', '[m]', '[n]']  # 老数据中的合法噪音符号
 
@@ -154,7 +153,7 @@ class TXT(File):
     def check_out(self, input_str, path):
         # 先去掉所有噪音符号
         new_str = self.remove_noisy(input_str)
-        new_str = new_str.replace('[/', ' ').replace('/]', ' ').replace('[((', ' ').replace('))]', ' ')
+        new_str = new_str.replace(f'[/', ' ').replace('/]', ' ').replace('[((', ' ').replace('))]', ' ')
         pattern = self.err_symbol
         special_symbol = re.findall(pattern, new_str)
         if special_symbol:
@@ -188,7 +187,7 @@ class TXT(File):
         if double_s:
             logger.error("{}\t Has double str(quan jiao) is {}\t{}".format(self.filepath, double_s, content))
 
-    def is_one_line(self, lines: list):
+    def is_one_line(self, lines):
         """
          判断是否为一行
         :param lines: 文本行
@@ -270,9 +269,10 @@ class Metadata(File):
         for m in meta_no_null:
             if m not in meta.keys():
                 logger.error("{}\t {} key is null".format(self.filepath, m))
-            else:
-                if not meta['SEX'] in ['Male', 'Female']:
-                    logger.error("{}\t value format is err".format(self.filepath))
+
+        if meta.get("SEX"):
+            if meta.get("SEX") not in ['Male', 'Female']:
+                logger.error("{}\t sex value format is err".format(self.filepath))
 
 
 class WAV(object):
@@ -331,23 +331,18 @@ if __name__ == '__main__':
     # project_path = r"\\10.10.30.14\格式整理_ming\apy161101010_593小时中国人说英语手机采集语音数据\完整数据包_加密后数据\data"
     # project_path = r"\\10.10.30.14\格式整理_ming\apy161101028_r_215小时意大利语手机采集语音数据_朗读\完整数据包_加密后数据\data"
 
-    # project_paths = [
-    #     r"\\10.10.30.14\格式整理_ming\APY161101029_r_292小时泰语手机采集语音数据_朗读\完整数据包_加密后数据\data",
-    #     r"\\10.10.30.14\格式整理_ming\apy161101022_r_235小时日语手机采集语音数据_朗读\完整数据包_加密后数据\data",
-    #     r"\\10.10.30.14\apy161101014_r_662小时中文重口音手机采集语音数据\完整数据包_processed\data",
-    #     r"\\10.10.30.14\格式整理_ming\APY161101027_g_351人德语手机采集语音数据_引导\完整数据包_加密后数据\data",
-    #     r"\\10.10.30.14\apy180901052_287小时日语手机采集语音数据\完整数据包_processed\data",
-    #     r"\\10.10.30.14\apy161101013_1505小时普通话手机采集语音数据\完整数据包_加密后数据\data",
-    #     r"\\10.10.30.14\格式整理_ming\apy161101027_r_211小时德语手机语音采集数据_朗读\完整数据包_加密后数据\data",
-    #     r"\\10.10.30.14\格式整理_ming\apy161101010_593小时中国人说英语手机采集语音数据\完整数据包_加密后数据\data",
-    #     r"\\10.10.30.14\格式整理_ming\apy161101028_r_215小时意大利语手机采集语音数据_朗读\完整数据包_加密后数据\data"
-    # ]
-    # for item in project_paths:
-    #     pc = ProjectCheck()
-    #     pc.check(item)
-
     # project_path = r"\\10.10.30.14\刘晓东\数据分类\语音数据\apy161101032_g_357人英式英语手机采集语音数据\完整数据包_processed\data"
-    project_path = r"\\10.10.30.14\刘晓东\数据分类\语音数据\apy161101032_r_199小时英式英语手机采集语音数据\完整数据包_processed\data"
-    # project_path = r"\\10.10.30.14\杨明明\修改测试demo\data"
+    # project_path = r"\\10.10.30.14\刘晓东\数据分类\语音数据\apy161101032_r_199小时英式英语手机采集语音数据\完整数据包_processed\data"
+    # project_path = r"\\10.10.30.14\apy161101005_245小时车载环境普通话手机采集语音数据\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\格式整理_ming\APY161101044_r_156人马来西亚语手机采集数据_朗读\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\apy161101007_250人苏州方言手机采集语音数据2\完整数据包_加密后数据\data"
+
+    # project_path = r"\\10.10.30.14\刘晓东\数据分类\语音数据\apy161101030_g_496人印尼语手机采集语音数据\完整数据包_processed\data"
+    # project_path = r"\\10.10.30.14\data"
+    # project_path = r"\\10.10.30.14\apy170501037_1297小时录音笔采集场景噪音数据\完整数据包_processed\data"
+    project_path = r"\\10.10.30.14\apy161101004_101小时录音笔采集场景噪音数据\完整数据包_加密后数据\data"
+
     pc = ProjectCheck()
+    # pc.check_file_complete(project_path)  # 检查文件的完整性
     pc.check(project_path)
+
