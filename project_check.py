@@ -48,7 +48,6 @@ class ProjectCheck(object):
                     for item in [wav_file, txt_file, meta_file]:
                         if not os.path.exists(item):
                             logger.error("{}\tdoes not exist".format(item))
-
         logging.warning("project file check end")
 
     def check(self, project_path):
@@ -78,7 +77,7 @@ class ProjectCheck(object):
                 else:
                     logger.error("{}\tfile type error".format(file))
 
-        if not len(all_name_list) == len(set(all_name_list)):
+        if len(all_name_list) != len(set(all_name_list)):
             logger.error("{}\tfile name repeat".format(file))
 
 
@@ -106,9 +105,9 @@ class File(object):
 
         # 定义合法噪音符号
         self.noisy_list = ['[[lipsmack]]', '[[cough]]', '[[sneeze]]', '[[breath]]', '[[background]]', '[[laugh]]']
-        # self.noisy_list = ['[p]', '[n]', '[s]', '[t]']     # 老数据中的合法噪音符号
-        # self.noisy_list = ['[p]', '[n]', '[z]', '[h]', '[k]']     # 老数据中的合法噪音符号
-        # self.noisy_list = ['[r]', '[p]', '[b]', '[a]', '[m]', '[n]']  # 老数据中的合法噪音符号
+        # self.noisy_list = ["<NON>", "<SPK>", "<NPS>"]
+        # self.noisy_list = ['[p]', '[n]', '[s]', '[t]', '[z]', '[h]', '[k]', '[r]', '[b]', '[a]', '[m]', '[n]']
+        # self.noisy_list.extend(['[P]', '[N]', '[S]', '[T]', '[A]', '[B]', '[C]', '[D]'])
 
     def read_file(self):
         """
@@ -129,7 +128,7 @@ class TXT(File):
             input_str = input_str.replace(noisy, ' ')
         return input_str
 
-    def check_in(self, input_str, path):
+    def check_in(self, input_str, line_number):
         input_str = self.remove_noisy(input_str)
         res1 = re.findall('\\[\\(\\(.*?\\)\\)\\]', input_str)
         pattern = self.err_symbol
@@ -139,7 +138,7 @@ class TXT(File):
                 new_str = self.remove_noisy(new_str)
                 special_symbol = re.findall(pattern, new_str)
                 if special_symbol:
-                    logger.error(f'{path}\tin contain symbol {special_symbol}\t{input_str}')
+                    logger.error(f'{self.filepath}\tin contain symbol {special_symbol}\t{input_str}\t{line_number}')
 
         res2 = re.findall('\\[\\/.*?\\/\\]', input_str)
         if len(res2) > 0:
@@ -148,18 +147,18 @@ class TXT(File):
                 new_str = self.remove_noisy(new_str)
                 special_symbol = re.findall(pattern, new_str)
                 if special_symbol:
-                    logger.error(f'{path}\tin contain symbol {special_symbol}\t{input_str}')
+                    logger.error(f'{self.filepath}\tin contain symbol {special_symbol}\t{input_str}')
 
-    def check_out(self, input_str, path):
+    def check_out(self, input_str, line_number):
         # 先去掉所有噪音符号
         new_str = self.remove_noisy(input_str)
         new_str = new_str.replace(f'[/', ' ').replace('/]', ' ').replace('[((', ' ').replace('))]', ' ')
         pattern = self.err_symbol
         special_symbol = re.findall(pattern, new_str)
         if special_symbol:
-            logger.error(f'{path}\tout contain symbol {special_symbol}\t{input_str}')
+            logger.error(f'{self.filepath}\tout contain symbol {special_symbol}\t{input_str}\t{line_number}')
 
-    def check_noisy(self, input_str, path):
+    def check_noisy(self, input_str, line_number):
         """
         检查噪音符号
         :param input_str:
@@ -171,9 +170,9 @@ class TXT(File):
         for noisy in self.noisy_list:
             noisy_new = noisy.replace('[[', '').replace(']]', '')
             if noisy_new in input_str:
-                logger.error(f'{path}\tcontain other noisy {noisy_new}\t{input_str}')
+                logger.error(f'{self.filepath}\tcontain other noisy {noisy_new}\t{input_str}\t{line_number}')
 
-    def is_double_str(self, content):
+    def is_double_str(self, content, line_number):
         """
         是否包含全角
         :param lines:
@@ -185,7 +184,8 @@ class TXT(File):
             if double_str(x):
                 double_s.append(x)
         if double_s:
-            logger.error("{}\t Has double str(quan jiao) is {}\t{}".format(self.filepath, double_s, content))
+            logger.error(
+                "{}\t Has double str(quan jiao) is {}\t{}\t{}".format(self.filepath, double_s, content, line_number))
 
     def is_one_line(self, lines):
         """
@@ -202,7 +202,7 @@ class TXT(File):
             if not content:
                 logger.error("{}\t the file is line break".format(self.filepath))
 
-    def is_have_digit(self, content):
+    def is_have_digit(self, content, line_number):
         """
         是否包含数字
         :param lines:
@@ -211,7 +211,7 @@ class TXT(File):
         P_DIGIT = re.compile(u'\d+')
         digit = P_DIGIT.findall(content)
         if digit:
-            logger.error("{}\t contains numbers is {}\t{}".format(self.filepath, digit, content))
+            logger.error("{}\t contains the number {}\t{}\t{}".format(self.filepath, digit, content, line_number))
 
     def is_have_symbol(self, content):
         """
@@ -224,19 +224,37 @@ class TXT(File):
         if special_symbol:
             logger.error("{}\t contains special symbol is {}\t {}".format(self.filepath, special_symbol, content))
 
-    def check(self, lines=None):
-        # 检查单行多行
-        if not lines:
-            lines = self.read_file()
-        self.is_one_line(lines)
+    def check(self, multi_line=False):
+        """
+        文本检查
+        :param multi_line:  多行标志 默认单行
+        :return:
+        """
 
-        content = "".join(lines).strip()
-        self.is_have_digit(content)  # 检查数字
-        self.is_double_str(content)  # 检查全角字符
+        def check_content(content, line_number=1):
+            """
+            内容检查
+            :param content:  需要检查的内容
+            :param index:   多行的情况，检查每一行，的行号
+            :return:
+            """
+            self.is_have_digit(content, line_number)  # 检查数字
+            self.is_double_str(content, line_number)  # 检查全角字符
 
-        self.check_out(content, self.filepath)  # 检查正常噪音符号外的其他符号
-        self.check_in(content, self.filepath)  # 检查噪音符号内的噪音符号（噪音符号嵌套问题）
-        self.check_noisy(content, self.filepath)  # 检查没有标注噪音符号的噪音单词
+            self.check_out(content, line_number)  # 检查正常噪音符号外的其他符号
+            self.check_in(content, line_number)  # 检查噪音符号内的噪音符号（噪音符号嵌套问题）
+            self.check_noisy(content, line_number)  # 检查没有标注噪音符号的噪音单词
+
+        lines = self.read_file()  # 读取文件
+        if multi_line:  # 多行的情况
+            for line_index, line_content in enumerate(lines):
+                line_number = line_index + 1
+                line_content = line_content.strip().split("\t")[-1]
+                check_content(line_content, line_number)
+        else:  # 单行的情况
+            self.is_one_line(lines)  # 检查是否为单行
+            content = "".join(lines).strip().split("\t")[0]  # 将内容拼接检查其他内容
+            check_content(content)
 
 
 class Metadata(File):
@@ -260,7 +278,10 @@ class Metadata(File):
                     logger.error("{}\t content redundant TAB keys, {}".format(self.filepath, line.split('\t')[0]))
             elif len(line.split('\t')) == 1:
                 if line.split('\t')[0] in meta_no_null:
-                    logger.error("{}\t {} key is null".format(self.filepath, line.split('\t')[0]))
+                    logger.error("{}\t {} value is null".format(self.filepath, line.split('\t')[0]))
+                key = line.split('\t')[0]
+                valve = ''
+                meta[key] = valve
             else:
                 key = line.split('\t')[0]
                 valve = line.split('\t')[1]
@@ -279,8 +300,8 @@ class WAV(object):
     min_length = 15
     audio_channel = 1
     sample_width = 2
-    # framerate = [16000, 22050, 44100]
-    framerate = [16000, 22050]
+    framerate = [16000, 22050, 44100, 48000]
+    # framerate = [16000, 22050]
     silent_section = 0.05
 
     def __init__(self, file_path):
@@ -338,11 +359,45 @@ if __name__ == '__main__':
     # project_path = r"\\10.10.30.14\apy161101007_250人苏州方言手机采集语音数据2\完整数据包_加密后数据\data"
 
     # project_path = r"\\10.10.30.14\刘晓东\数据分类\语音数据\apy161101030_g_496人印尼语手机采集语音数据\完整数据包_processed\data"
-    # project_path = r"\\10.10.30.14\data"
     # project_path = r"\\10.10.30.14\apy170501037_1297小时录音笔采集场景噪音数据\完整数据包_processed\data"
-    project_path = r"\\10.10.30.14\apy161101004_101小时录音笔采集场景噪音数据\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\apy161101004_101小时录音笔采集场景噪音数据\完整数据包_加密后数据\data"
+
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101040_1420小时普通话自然语音手机采集数据\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101021_r_1032小时上海方言手机采集语音数据_朗读\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101020_r_1652小时粤语手机采集语音数据_朗读\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101019_r_794小时四川方言手机采集语音数据_朗读\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\格式整理_ming\apy161101018_r_1044小时闽南语手机采集语音数据_朗读\完整数据包_加密后数据\data"
+
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101010_593小时中国人说英语手机采集语音数据\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101003_3125小时语音助手普通话实网采集语音数据\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101002_1175小时语音助手普通话实网采集语音数据\完整数据包_加密后数据\data\category"
+
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101001_140小时电商客服普通话实网采集语音数据\完整数据包_加密后数据\data\category\G0001"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101043_g_203人台湾普通话手机采集数据\完整数据包_processed\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101045_797人低幼儿童麦克风手机采集语音数据\完整数据包_processed\data\categoryPhone"
+    # project_path = r"\\10.10.30.14\语音数据_2016\APY161101043_R_204人台湾普通话手机采集数据\完整数据包\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101016_463人河南方言手机采集语音数据\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101008_370人杭州方言手机采集语音数据\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101007_250人苏州方言手机采集语音数据\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101039_220人美国儿童麦克风采集语音数据_朗读\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101023_201人英国儿童麦克风采集语音数据\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2017\apy170101041_531小时麦克风手机采集车载噪音数据\完整数据包_加密后数据\data"
+    # project_path = r"\\10.10.30.14\语音数据_2017\APY170701046_1_849小时普通话家居交互手机语音数据（998人远场家居采集语音数据子集）\完整数据包_processed"
+    # project_path = r"\\10.10.30.14\语音数据_2017\APY171101050_2_118人数字方言普通话手机采集语音数据\完整数据包_ming\data"
+    # project_path = r"\\10.10.30.14\语音数据_2017\APY171101050_1_474人数字方言普通话手机采集语音数据\完整数据包_ming\data"
+    # project_path = r"\\10.10.30.14\语音数据_2017\apy170401036_s_200人中文手机采集语音数据\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101024_r_203人噪音环境口音普通话手机采集语音数据_朗读\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101024_g_205人噪音环境口音普通话手机采集语音数据\完整数据包_processed\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2017\apy170401036_w_200人中文唤醒词手机语音采集数据\完整数据包_processed\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2017\APY170801047_35小时有声读物文本拼音标注语音数据\完整数据包\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2017\apy170501038_20人英文情感语音麦克风采集数据\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101017_312人东北方言手机采集语音数据\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101015_r_738小时维语手机采集语音数据_朗读\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101006_754人外国人说汉语手机采集语音数据\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101005_245小时车载环境普通话手机采集语音数据\完整数据包_加密后数据\data\category"
+    # project_path = r"\\10.10.30.14\语音数据_2016\apy161101025_739人中国儿童麦克风采集语音数据\完整数据包_processed\data\category"
+    project_path = r"\\10.10.30.14\语音数据_2016\APY161101043_R_204人台湾普通话手机采集数据_朗读\完整数据包_加密后数据\data\category"
 
     pc = ProjectCheck()
     # pc.check_file_complete(project_path)  # 检查文件的完整性
     pc.check(project_path)
-
